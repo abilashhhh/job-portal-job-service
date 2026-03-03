@@ -55,7 +55,7 @@ export const deleteCompany = TryCatch(
   async (req: AuthenticatedRequest, res) => {
     const user = req.user;
     const { companyId } = req.params;
-
+    if (!companyId) throw new ErrorHandler(400, "Compnay id is required");
     const [company] = await sql`SELECT logo_public_id FROM companies 
     WHERE company_id = ${companyId} AND recruiter_id = ${user?.user_id}`;
 
@@ -159,7 +159,10 @@ export const updateJob = TryCatch(async (req: AuthenticatedRequest, res) => {
   if (!existingJob) throw new ErrorHandler(404, "Job not found");
 
   if (existingJob.posted_by_recruiter_id !== user.user_id) {
-    throw new ErrorHandler(403, "Forbidden, You are not authorized to update this job");
+    throw new ErrorHandler(
+      403,
+      "Forbidden, You are not authorized to update this job",
+    );
   }
 
   const [updatedJob] = await sql`
@@ -182,3 +185,39 @@ export const updateJob = TryCatch(async (req: AuthenticatedRequest, res) => {
     job: updatedJob,
   });
 });
+
+export const getAllCompany = TryCatch(
+  async (req: AuthenticatedRequest, res) => {
+    const companies =
+      await sql`SELECT * FROM companies WHERE recruiter_id = ${req.user?.user_id}`;
+
+    res.json({ companies });
+  },
+);
+
+export const getSingleCompany = TryCatch(
+  async (req: AuthenticatedRequest, res) => {
+    const { companyId } = req.params;
+    if (!companyId) throw new ErrorHandler(400, "Compnay id is required");
+
+    const [companyData] = await sql`
+  SELECT c.*, COALESCE(
+    (
+      SELECT json_agg(j.*) 
+      FROM jobs j 
+      WHERE j.company_id = c.company_id
+    ),
+    '[]'::json
+  ) AS jobs
+  FROM companies c 
+  WHERE c.company_id = ${companyId} 
+  GROUP BY c.company_id;
+`;
+
+    if (!companyData) {
+      throw new ErrorHandler(404, "Company not found");
+    }
+
+    res.json(companyData);
+  },
+);
