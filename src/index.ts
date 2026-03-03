@@ -81,8 +81,7 @@ async function initDb() {
 }
 
 initDb().then(() => {
-  const port = process.env.PORT || 5002;
-
+  const port = process.env.PORT;
   app.listen(port, () => {
     console.log(`✅ Job service is running on port ${port}`);
   });
