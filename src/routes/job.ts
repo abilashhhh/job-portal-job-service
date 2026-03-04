@@ -4,6 +4,7 @@ import {
   createJob,
   deleteCompany,
   getAllActiveJobs,
+  getAllApplicationsForJobId,
   getAllCompany,
   getSingleCompany,
   getSingleJob,
@@ -22,5 +23,6 @@ router.get("/getCompany/all", isAuth, getAllCompany);
 router.get("/getCompany/:companyId", isAuth, getSingleCompany);
 router.get("/getAllJobs/active", getAllActiveJobs);
 router.get("/getSingleJob/:jobId", getSingleJob);
+router.get("/getAllApplications/:job_id", isAuth, getAllApplicationsForJobId);
 
 export default router;
