@@ -8,6 +8,7 @@ import {
   getAllCompany,
   getSingleCompany,
   getSingleJob,
+  updateApplication,
   updateJob,
 } from "../controllers/job.js";
 import { isAuth } from "../middleware/auth.js";
@@ -24,5 +25,6 @@ router.get("/getCompany/:companyId", isAuth, getSingleCompany);
 router.get("/getAllJobs/active", getAllActiveJobs);
 router.get("/getSingleJob/:jobId", getSingleJob);
 router.get("/getAllApplications/:job_id", isAuth, getAllApplicationsForJobId);
+router.put("/updateApplication/:application_id", isAuth, updateApplication);
 
 export default router;

@@ -4,6 +4,9 @@ import getBuffer from "../utils/buffer.js";
 import { sql } from "../utils/db.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { TryCatch } from "../utils/TryCatch.js";
+import { application } from "express";
+import { applicationStatusUpdateTemplate } from "../template.js";
+import { publishToTopic } from "../producer.js";
 
 export const createCompany = TryCatch(
   async (req: AuthenticatedRequest, res) => {
@@ -274,7 +277,6 @@ export const getSingleJob = TryCatch(async (req, res) => {
   res.json(job);
 });
 
-
 export const getAllApplicationsForJobId = TryCatch(
   async (req: AuthenticatedRequest, res) => {
     const user = req.user;
@@ -294,5 +296,50 @@ export const getAllApplicationsForJobId = TryCatch(
       ORDER BY subscribed DESC,applied_at ASC`;
 
     res.json(applications);
+  },
+);
+
+export const updateApplication = TryCatch(
+  async (req: AuthenticatedRequest, res) => {
+    const user = req.user;
+    if (!user) throw new ErrorHandler(401, "Authentication required");
+    if (user.role !== "recruiter")
+      throw new ErrorHandler(403, "Forbidden to do this request");
+    const { application_id } = req.params;
+    const [applications] =
+      await sql`SELECT * FROM applications WHERE application_id = ${application_id}`;
+    if (!applications) throw new ErrorHandler(404, "Application not found");
+
+    const [job] =
+      await sql`SELECT posted_by_recruiter_id, title FROM jobs WHERE job_id = ${applications.job_id}`;
+
+    if (!job) {
+      throw new ErrorHandler(404, "No jobs with this id");
+    }
+
+    if (job.posted_by_recruiter_id !== user.user_id) {
+      throw new ErrorHandler(403, "Forbidden, You are not allowed");
+    }
+
+    const [updateApplication] =
+      await sql`UPDATE applications SET status = ${req.body.status} 
+      WHERE application_id = ${application_id}
+      RETURNING *`;
+
+    const message = {
+      to: applications.applicant_email,
+      subject: "Application Update",
+      html: applicationStatusUpdateTemplate(job.title),
+    };
+
+    publishToTopic("send-mail", message).catch((error) => {
+      console.error("Failed to publish message to kafka", error);
+    });
+
+    res.json({
+      message: "Application Updated",
+      job,
+      updateApplication,
+    });
   },
 );
