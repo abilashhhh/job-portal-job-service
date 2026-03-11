@@ -119,6 +119,36 @@ export const createJob = TryCatch(async (req: AuthenticatedRequest, res) => {
   res.json({ message: "Job posted successfully", job: newJob });
 });
 
+export const deleteJob = TryCatch(async (req: AuthenticatedRequest, res) => {
+  const user = req.user;
+  if (!user) throw new ErrorHandler(401, "Authentication error");
+  if (user.role !== "recruiter")
+    throw new ErrorHandler(403, "Forbidden - Only recruiter can delete a job");
+
+  const { jobId } = req.params;
+  if (!jobId) throw new ErrorHandler(400, "Job id is required");
+
+  const [existingJob] = await sql`
+    SELECT posted_by_recruiter_id FROM jobs
+    WHERE job_id = ${jobId}
+  `;
+
+  if (!existingJob) throw new ErrorHandler(404, "Job not found");
+
+  if (existingJob.posted_by_recruiter_id !== user.user_id) {
+    throw new ErrorHandler(
+      403,
+      "Forbidden, You are not authorized to delete this job",
+    );
+  }
+
+  await sql`DELETE FROM jobs WHERE job_id = ${jobId}`;
+
+  res.json({
+    message: "Job deleted successfully",
+  });
+});
+
 export const updateJob = TryCatch(async (req: AuthenticatedRequest, res) => {
   const user = req.user;
   if (!user) throw new ErrorHandler(401, "Authentication error");
@@ -273,9 +303,46 @@ export const getAllActiveJobs = TryCatch(async (req, res) => {
 });
 
 export const getSingleJob = TryCatch(async (req, res) => {
-  const [job] = await sql`SELECT * FROM jobs WHERE job_id= ${req.params.jobId}`;
+  const { jobId } = req.params;
+
+  if (!jobId) throw new ErrorHandler(400, "Job id is required");
+
+  const [job] = await sql`
+    SELECT 
+      j.job_id,
+      j.title,
+      j.description,
+      j.salary,
+      j.location,
+      j.job_type,
+      j.role,
+      j.work_location,
+      j.openings,
+      j.is_active,
+      j.created_at,
+
+      c.company_id,
+      c.name AS company_name,
+      c.description AS company_description,
+      c.logo AS company_logo,
+      c.website AS company_website,
+      c.recruiter_id AS company_recruiter_id,
+
+      u.user_id AS recruiter_id,
+      u.name AS recruiter_name,
+      u.email AS recruiter_email,
+      u.role AS recruiter_role
+    FROM jobs j
+    JOIN companies c ON j.company_id = c.company_id
+    JOIN users u ON j.posted_by_recruiter_id = u.user_id
+    WHERE j.job_id = ${jobId}
+  `;
+
+  if (!job) throw new ErrorHandler(404, "Job not found");
+
   res.json(job);
 });
+
 
 export const getAllApplicationsForJobId = TryCatch(
   async (req: AuthenticatedRequest, res) => {

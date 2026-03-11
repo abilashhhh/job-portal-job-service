@@ -3,6 +3,7 @@ import {
   createCompany,
   createJob,
   deleteCompany,
+  deleteJob,
   getAllActiveJobs,
   getAllApplicationsForJobId,
   getAllCompany,
@@ -19,9 +20,10 @@ const router = express.Router();
 router.post("/createCompany", isAuth, uploadFile, createCompany);
 router.delete("/deleteCompany/:companyId", isAuth, deleteCompany);
 router.post("/createJob", isAuth, createJob);
+router.delete("/deleteJob/:jobId", isAuth, deleteJob);
 router.put("/updateJob/:jobId", isAuth, updateJob);
 router.get("/getCompany/all", isAuth, getAllCompany);
-router.get("/getCompany/:companyId", isAuth, getSingleCompany);
+router.get("/getCompany/:companyId", getSingleCompany);
 router.get("/getAllJobs/active", getAllActiveJobs);
 router.get("/getSingleJob/:jobId", getSingleJob);
 router.get("/getAllApplications/:job_id", isAuth, getAllApplicationsForJobId);
