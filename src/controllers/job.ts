@@ -194,7 +194,7 @@ export const getAllCompany = TryCatch(
     const companies =
       await sql`SELECT * FROM companies WHERE recruiter_id = ${req.user?.user_id}`;
 
-    res.json({ companies });
+    res.json(companies );
   },
 );
 
