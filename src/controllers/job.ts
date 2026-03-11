@@ -70,7 +70,7 @@ export const deleteCompany = TryCatch(
 
     await sql`DELETE FROM companies WHERE company_id = ${companyId}`;
 
-    res.json({ messge: "Company and associated jobs deleted successfully" });
+    res.json({ message: "Company and associated jobs deleted successfully" });
   },
 );
 
