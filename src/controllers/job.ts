@@ -358,13 +358,34 @@ export const getAllApplicationsForJobId = TryCatch(
       throw new ErrorHandler(403, "Forbidden, You are not allowed");
     }
 
-    const applications =
-      await sql`SELECT * FROM applications WHERE job_id = ${job_id}
-      ORDER BY subscribed DESC,applied_at ASC`;
+    const applications = await sql`
+      SELECT 
+        a.application_id,
+        a.job_id,
+        a.applicant_id,
+        a.status,
+        a.subscribed,
+        a.applied_at,
+        a.resume,
+
+        u.user_id,
+        u.name AS applicant_name,
+        u.email AS applicant_email,
+        u.profile_pic_public_id AS applicant_profile_picture_id,
+        u.profile_pic AS applicant_profile_picture,
+        u.role AS applicant_role,
+        u.bio AS applicant_bio
+
+      FROM applications a
+      JOIN users u ON a.applicant_id = u.user_id
+      WHERE a.job_id = ${job_id}
+      ORDER BY a.subscribed DESC, a.applied_at ASC
+    `;
 
     res.json(applications);
   },
 );
+
 
 export const updateApplication = TryCatch(
   async (req: AuthenticatedRequest, res) => {
